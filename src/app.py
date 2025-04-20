@@ -32,21 +32,28 @@ def send_message(chat_id, text):
 @app.route("/llm", methods=["POST"])
 def webhook():
     data = request.get_json()
+    print(f"data: {data}")
     response =""
-    if "message" in data:
-        chat_id = data["message"]["chat"]["id"]
-        user_message = data["message"].get("text", "")
+    # if "message" in data:
+    #     chat_id = data["message"]["chat"]["id"]
+    #     user_message = data["message"].get("text", "")
 
-        if user_message:
-            # Chama o modelo LLM com a mensagem do usuário
-            response = ask_ollama(
-                prompt=user_message,
-                model=llm_model_name,
-                host=ollama_api_server_ipaddress,
-                port=ollama_api_server_port
-            )
+    #     if user_message:
+    #         # Chama o modelo LLM com a mensagem do usuário
+    #         response = ask_ollama(
+    #             prompt=user_message,
+    #             model=llm_model_name,
+    #             host=ollama_api_server_ipaddress,
+    #             port=ollama_api_server_port
+    #         )
 
-            # Envia de volta pro Telegram
-            send_message(chat_id, response)
+    #         # Envia de volta pro Telegram
+    #         send_message(chat_id, response)
+    response = ask_ollama(
+                 prompt=data.get('prompt'),
+                 model=llm_model_name,
+                 host=ollama_api_server_ipaddress,
+                 port=ollama_api_server_port
+             )
 
     return {"response": response, "status": 200}
