@@ -2,6 +2,9 @@ const TelegramBot = require('node-telegram-bot-api');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../conf/.env') });// Replace with your bot token from BotFather
 const {request_to_llm} = require("./utils/request_to_ollama.js");
+const { downloadImageContent } = require("./utils/dowload_image_content.js");
+const {resizeImage} = require("./utils/resize_image.js");
+
 
 // Carregar os dados de configuração 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -43,8 +46,41 @@ bot.on('message', async (msg) => {
 
         
     }
+    if (text == "/describeImage") {
+        const bot_feedback = await bot.sendMessage(chatId, 'Envie a imagem que deseja descrever', {
+            reply_markup: {
+                force_reply: true,
+            }
+        });
+
+        bot.onReplyToMessage(chatId, bot_feedback.message_id, async (responseWithPhoto) => {
+            if (responseWithPhoto.photo) {
+                const photo = responseWithPhoto.photo[responseWithPhoto.photo.length - 1];
+                const file = await bot.getFile(photo.file_id);
+                const filePath = file.file_path;
+
+                const imageData = await downloadImageContent(filePath, token);
+                if (imageData) {
+                    console.log("Image downloaded successfully!");
+                        
+                    const resizedImage = await resizeImage(imageData);
+                    // Convert the image buffer to Base64
+                    const base64Image = resizedImage.toString('base64');
+                    console.log(`Base64 Image: ${base64Image}`);
+
+                    // Optionally, send the Base64 string back to the user
+                    bot.sendMessage(chatId, `Imagem processada com sucesso!`);
+                } else {
+                    console.error("Failed to download the image.");
+                    bot.sendMessage(chatId, "Failed to download the image. Please try again.");
+                }
+            } else {
+                bot.sendMessage(chatId, "No image was provided. Please send an image.");
+            }
+        });
+    }
     if (text=="/getchatid"){
-        bot.sendMessage(chatId, `Bot: Your chatid is ${chatId}"`);
+        bot.sendMessage(chatId, `Bot: Your chatid is ${chatId}`);
     }
 });
 // Handle errors
