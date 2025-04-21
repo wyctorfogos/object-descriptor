@@ -8,3 +8,16 @@ Ativação do ambiente virtual:
 Instalação das libs:
 
 `pip3 install -r requirements.txt`
+
+Rodar o serviço de LLM:
+`ollama run <LLM_NAME>`
+
+Por exemplo:
+`ollama run gemma3:4b-it-qat`
+
+Configurações:
+
+Criação de um arquivo '.env' com os dados da máquina de produção. Veja o `.env.test` como exemplo.
+
+
+Obs.: <LLM_NAME> Precisa ser o mesmo que o nome do llm do arquivo .env
