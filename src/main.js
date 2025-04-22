@@ -1,9 +1,11 @@
 const TelegramBot = require('node-telegram-bot-api');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../conf/.env') });// Replace with your bot token from BotFather
-const {request_to_llm} = require("./utils/request_to_ollama.js");
+const { request_to_llm } = require("./utils/request_to_ollama.js");
+const { request_image_description } = require("./utils/request_to_llm_with_image.js");
 const { downloadImageContent } = require("./utils/dowload_image_content.js");
-const {resizeImage} = require("./utils/resize_image.js");
+const { resizeImage} = require("./utils/resize_image.js");
+const { splitMessage } = require("./utils/split_message.js");
 
 
 // Carregar os dados de configuração 
@@ -17,34 +19,47 @@ const bot = new TelegramBot(token, { polling: true });
 
 // Listen for any message
 bot.on('message', async (msg) => {
+    console.log(`Bot service is online!`)
     const chatId = msg.chat.id;
     const text = msg.text;
     console.log(`Received message: "${text}" from chat ID: ${chatId}`);
 
     if (text == "/chatbot") {
-        const bot_feedback = await bot.sendMessage(chatId, 'Escreva o que deseja pergutar', {
+        const bot_feedback = await bot.sendMessage(chatId, 'Escreva o que deseja perguntar', {
             reply_markup: {
                 force_reply: true,
             }
         });
 
         bot.onReplyToMessage(chatId, bot_feedback.message_id, async (feedbackResponse) => {
-            // Adicionar a requisição de adição de um veículo no Traffic
             let user_message_content = String(feedbackResponse.text);
-                    // Mensagem de loading
-            const loadingMessageGetReport = await bot.sendMessage(chatId, '🔄 Obtendo dados ...');
-            const llm_response = await request_to_llm(
-                llm_model_name, 
-                ollama_api_server_ipaddress, 
-                ollama_api_server_port, 
-                user_message_content
-            );
-            bot.sendMessage(chatId, `Bot: ${llm_response}`);
-            
-            await bot.deleteMessage(chatId, loadingMessageGetReport.message_id);      
-        });
 
-        
+            // Send a loading message
+            const loadingMessageGetReport = await bot.sendMessage(chatId, '🔄 Obtendo dados ...');
+
+            try {
+                const llm_response = await request_to_llm(
+                    llm_model_name,
+                    ollama_api_server_ipaddress,
+                    ollama_api_server_port,
+                    user_message_content
+                );
+
+                // Split the response into smaller parts
+                const responseParts = splitMessage(llm_response, 4000); // Split into chunks of 4000 characters
+
+                // Send each part sequentially
+                for (const part of responseParts) {
+                    await bot.sendMessage(chatId, `Bot: ${part}`);
+                }
+            } catch (error) {
+                console.error("Error processing LLM response:", error);
+                bot.sendMessage(chatId, "Ocorreu um erro ao processar sua solicitação. Tente novamente.");
+            } finally {
+                // Delete the loading message
+                await bot.deleteMessage(chatId, loadingMessageGetReport.message_id);
+            }
+        });
     }
     if (text == "/describeImage") {
         const bot_feedback = await bot.sendMessage(chatId, 'Envie a imagem que deseja descrever', {
@@ -60,16 +75,25 @@ bot.on('message', async (msg) => {
                 const filePath = file.file_path;
 
                 const imageData = await downloadImageContent(filePath, token);
-                if (imageData) {
-                    console.log("Image downloaded successfully!");
-                        
+                if (imageData) {                        
                     const resizedImage = await resizeImage(imageData);
-                    // Convert the image buffer to Base64
                     const base64Image = resizedImage.toString('base64');
-                    console.log(`Base64 Image: ${base64Image}`);
 
-                    // Optionally, send the Base64 string back to the user
-                    bot.sendMessage(chatId, `Imagem processada com sucesso!`);
+                    const llm_response = await request_image_description(
+                        llm_model_name, 
+                        ollama_api_server_ipaddress, 
+                        ollama_api_server_port, 
+                        "Describe the image content",
+                        base64Image
+                    );
+
+                    // Split the response into smaller parts
+                    const responseParts = splitMessage(llm_response);
+
+                    // Send each part sequentially
+                    for (const part of responseParts) {
+                        await bot.sendMessage(chatId, `Bot: ${part}`);
+                    }
                 } else {
                     console.error("Failed to download the image.");
                     bot.sendMessage(chatId, "Failed to download the image. Please try again.");
