@@ -83,7 +83,7 @@ bot.on('message', async (msg) => {
                         llm_model_name, 
                         ollama_api_server_ipaddress, 
                         ollama_api_server_port, 
-                        "Describe the image content",
+                        "Descreva o conteúdo da imagem",
                         base64Image
                     );
 

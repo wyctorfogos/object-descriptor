@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  bot-telegram-service:
+    build:
+      context: ..
+      dockerfile: docker/dockerfile
+    env_file:
+      - ../conf/.env
+    command: ["npm", "start"]
+    environment:
+      llm_model_name: "${llm_model_name:-gemma3:4b-it-qat}"
+      api_server: "${api_server:-localhost}"
+      api_server_port: "${api_server_port:-4000}"
+      ollama_api_server_ipaddress: "${ollama_api_server_ipaddress:-localhost}"
+      ollama_api_server_port: "${ollama_api_server_port:-11434}"
+    ports:
+      - "${api_server_port}:4000"
+    network_mode: "host"
