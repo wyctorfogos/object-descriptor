@@ -17,50 +17,68 @@ const ollama_api_server_port = process.env.ollama_api_server_port;
 // Create a bot instance
 const bot = new TelegramBot(token, { polling: true });
 
+// Initialize conversation history
+const conversationHistory = {};
+const activeConversations = {}; // Rastreia quais chatIds estão em modo de conversa contínua
+
 // Listen for any message
 bot.on('message', async (msg) => {
-    console.log(`Bot service is online!`)
     const chatId = msg.chat.id;
     const text = msg.text;
     console.log(`Received message: "${text}" from chat ID: ${chatId}`);
 
-    if (text == "/chatbot") {
-        const bot_feedback = await bot.sendMessage(chatId, 'Escreva o que deseja perguntar', {
-            reply_markup: {
-                force_reply: true,
+    // Verifica se o usuário está em modo de conversa contínua
+    if (activeConversations[chatId] && text !== "/stop") {
+        // Adiciona a mensagem do usuário ao histórico
+        conversationHistory[chatId].push({ role: "user", content: text });
+
+        // Envia uma mensagem de carregamento
+        const loadingMessageGetReport = await bot.sendMessage(chatId, '🔄 Obtendo dados ...');
+
+        try {
+            // Envia o histórico completo para o LLM
+            const llm_response = await request_to_llm(
+                llm_model_name,
+                ollama_api_server_ipaddress,
+                ollama_api_server_port,
+                conversationHistory[chatId]
+            );
+
+            // Adiciona a resposta do LLM ao histórico
+            conversationHistory[chatId].push({ role: "assistant", content: llm_response });
+
+            // Divide a resposta em partes menores
+            const responseParts = splitMessage(llm_response, 4000);
+
+            // Envia cada parte da resposta
+            for (const part of responseParts) {
+                await bot.sendMessage(chatId, `Bot: ${part}`);
             }
-        });
-
-        bot.onReplyToMessage(chatId, bot_feedback.message_id, async (feedbackResponse) => {
-            let user_message_content = String(feedbackResponse.text);
-
-            // Send a loading message
-            const loadingMessageGetReport = await bot.sendMessage(chatId, '🔄 Obtendo dados ...');
-
-            try {
-                const llm_response = await request_to_llm(
-                    llm_model_name,
-                    ollama_api_server_ipaddress,
-                    ollama_api_server_port,
-                    user_message_content
-                );
-
-                // Split the response into smaller parts
-                const responseParts = splitMessage(llm_response, 4000); // Split into chunks of 4000 characters
-
-                // Send each part sequentially
-                for (const part of responseParts) {
-                    await bot.sendMessage(chatId, `Bot: ${part}`);
-                }
-            } catch (error) {
-                console.error("Error processing LLM response:", error);
-                bot.sendMessage(chatId, "Ocorreu um erro ao processar sua solicitação. Tente novamente.");
-            } finally {
-                // Delete the loading message
-                await bot.deleteMessage(chatId, loadingMessageGetReport.message_id);
-            }
-        });
+        } catch (error) {
+            console.error("Error processing LLM response:", error);
+            bot.sendMessage(chatId, "Ocorreu um erro ao processar sua solicitação. Tente novamente.");
+        } finally {
+            // Remove a mensagem de carregamento
+            await bot.deleteMessage(chatId, loadingMessageGetReport.message_id);
+        }
     }
+
+    // Outros comandos
+    if (text == "/stop") {
+        activeConversations[chatId] = false; // Desativa o modo de conversa contínua
+        bot.sendMessage(chatId, "Modo de conversa encerrado. Digite /chatbot para iniciar novamente.");
+    }
+
+    if (text == "/chatbot") {
+        if (!conversationHistory[chatId]) {
+            conversationHistory[chatId] = []; // Inicializa o histórico para o chatId
+        }
+
+        activeConversations[chatId] = true; // Ativa o modo de conversa contínua
+
+        bot.sendMessage(chatId, "Modo de conversa ativado! Envie suas mensagens e eu responderei. Para encerrar, digite /stop.");
+    }
+
     if (text == "/describeImage") {
         const bot_feedback = await bot.sendMessage(chatId, 'Envie a imagem que deseja descrever', {
             reply_markup: {
@@ -103,10 +121,28 @@ bot.on('message', async (msg) => {
             }
         });
     }
-    if (text=="/getchatid"){
+
+    if (text == "/reset") {
+        conversationHistory[chatId] = []; // Limpa o histórico para o chatId
+        bot.sendMessage(chatId, "Histórico de conversa foi resetado.");
+    }
+
+    if (text == "/getchatid") {
         bot.sendMessage(chatId, `Bot: Your chatid is ${chatId}`);
     }
+
+    if (text == "/help") {
+        bot.sendMessage(chatId, `Bot: Você possui os seguintes comandos disponíveis:\n
+            /describeImage: O usuário envia a image a ser descrita;
+            /chatbot: O usuário conversa com a IA;
+            /stop: Comando para parar a conversa com a IA;
+            /reset: Apagar o histórico de conversa com o usuário.
+            /getchatid: Fornece o chat id do usuário
+            `);
+    }
+    
 });
+
 // Handle errors
 bot.on('polling_error', (error) => {
     console.error(`Polling error: ${error.message}`);
