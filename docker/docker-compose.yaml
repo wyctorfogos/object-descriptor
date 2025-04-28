@@ -14,8 +14,8 @@ services:
       api_server_port: "${api_server_port:-4000}"
       ollama_api_server_ipaddress: "${ollama_api_server_ipaddress:-localhost}"
       ollama_api_server_port: "${ollama_api_server_port:-11434}"
-    ports:
-      - "${api_server_port}:4000"
+    # ports:
+    #   - "${api_server_port}:4000"
     cpus: 4
     restart: "always"
     network_mode: "host"

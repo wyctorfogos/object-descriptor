@@ -6,6 +6,7 @@ const { request_image_description } = require("./utils/request_to_llm_with_image
 const { downloadImageContent } = require("./utils/dowload_image_content.js");
 const { resizeImage} = require("./utils/resize_image.js");
 const { splitMessage } = require("./utils/split_message.js");
+const { messages } = require('./models/dict_languages.js')
 
 
 // Carregar os dados de configuração 
@@ -20,6 +21,9 @@ const bot = new TelegramBot(token, { polling: true });
 // Initialize conversation history
 const conversationHistory = {};
 const activeConversations = {}; // Rastreia quais chatIds estão em modo de conversa contínua
+const userLanguages = {}; // Armazena o idioma selecionado por cada chatId
+
+
 
 // Listen for any message
 bot.on('message', async (msg) => {
@@ -64,23 +68,23 @@ bot.on('message', async (msg) => {
     }
 
     // Outros comandos
-    if (text == "/stop") {
-        activeConversations[chatId] = false; // Desativa o modo de conversa contínua
-        bot.sendMessage(chatId, "Modo de conversa encerrado. Digite /chatbot para iniciar novamente.");
-    }
-
     if (text == "/chatbot") {
         if (!conversationHistory[chatId]) {
-            conversationHistory[chatId] = []; // Inicializa o histórico para o chatId
+            conversationHistory[chatId] = [];
         }
 
-        activeConversations[chatId] = true; // Ativa o modo de conversa contínua
+        activeConversations[chatId] = true;
 
-        bot.sendMessage(chatId, "Modo de conversa ativado! Envie suas mensagens e eu responderei. Para encerrar, digite /stop.");
+        bot.sendMessage(chatId, messages[userLanguages[chatId] || "en"].startConversation);
+    }
+
+    if (text == "/stop") {
+        activeConversations[chatId] = false;
+        bot.sendMessage(chatId, messages[userLanguages[chatId] || "en"].stopConversation);
     }
 
     if (text == "/describeImage") {
-        const bot_feedback = await bot.sendMessage(chatId, 'Envie a imagem que deseja descrever', {
+        const bot_feedback = await bot.sendMessage(chatId, 'Upload the image to describe it', {
             reply_markup: {
                 force_reply: true,
             }
@@ -101,7 +105,7 @@ bot.on('message', async (msg) => {
                         llm_model_name, 
                         ollama_api_server_ipaddress, 
                         ollama_api_server_port, 
-                        "Descreva o conteúdo da imagem",
+                        "Describe the image content",
                         base64Image
                     );
 
@@ -123,8 +127,8 @@ bot.on('message', async (msg) => {
     }
 
     if (text == "/reset") {
-        conversationHistory[chatId] = []; // Limpa o histórico para o chatId
-        bot.sendMessage(chatId, "Histórico de conversa foi resetado.");
+        conversationHistory[chatId] = [];
+        bot.sendMessage(chatId, messages[userLanguages[chatId] || "en"].resetHistory);
     }
 
     if (text == "/getchatid") {
@@ -132,15 +136,33 @@ bot.on('message', async (msg) => {
     }
 
     if (text == "/help") {
-        bot.sendMessage(chatId, `Bot: Você possui os seguintes comandos disponíveis:\n
-            /describeImage: O usuário envia a image a ser descrita;
-            /chatbot: O usuário conversa com a IA;
-            /stop: Comando para parar a conversa com a IA;
-            /reset: Apagar o histórico de conversa com o usuário.
-            /getchatid: Fornece o chat id do usuário
-            `);
+        bot.sendMessage(chatId, messages[userLanguages[chatId] || "en"].help);
     }
-    
+
+    if (text == "/languages") {
+        const languageOptions = {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "English", callback_data: "en" }],
+                    [{ text: "French", callback_data: "fr" }],
+                    [{ text: "Spanish", callback_data: "es" }],
+                    [{ text: "Portuguese", callback_data: "pt" }],
+                ],
+            },
+        };
+
+        bot.sendMessage(chatId, messages[userLanguages[chatId] || "en"].selectLanguage, languageOptions);
+    }
+});
+
+bot.on("callback_query", (callbackQuery) => {
+    const chatId = callbackQuery.message.chat.id;
+    const selectedLanguage = callbackQuery.data;
+
+    // Atualiza o idioma do usuário
+    userLanguages[chatId] = selectedLanguage;
+
+    bot.sendMessage(chatId, `Language changed to ${selectedLanguage === "en" ? "English" : selectedLanguage === "fr" ? "French" : selectedLanguage== "es" ? "Spanish": "Portuguese"}.`);
 });
 
 // Handle errors
