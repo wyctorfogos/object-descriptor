@@ -100,13 +100,13 @@ bot.on('message', async (msg) => {
                 if (imageData) {                        
                     const resizedImage = await resizeImage(imageData);
                     const base64Image = resizedImage.toString('base64');
-
+                    
                     const llm_response = await request_image_description(
                         llm_model_name, 
                         ollama_api_server_ipaddress, 
                         ollama_api_server_port, 
-                        "Describe the image content",
-                        base64Image
+                        message_content = responseWithPhoto.caption === null ? "Describe the image content": responseWithPhoto.caption,
+                        image_base64_content= base64Image
                     );
 
                     // Split the response into smaller parts
