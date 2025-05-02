@@ -23,6 +23,6 @@ Criação de um arquivo '.env' com os dados da máquina de produção. Veja o `.
 
 No chat do telegram com o bot, digite o comando `/describeImage`
 
-![Imagem de teste](./image.png)
+![Imagem de teste](./images/image.png)
 
 Obs.: <LLM_NAME> Precisa ser o mesmo que o nome do llm do arquivo .env

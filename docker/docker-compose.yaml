@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   bot-telegram-service:
     build:
@@ -14,8 +12,43 @@ services:
       api_server_port: "${api_server_port:-4000}"
       ollama_api_server_ipaddress: "${ollama_api_server_ipaddress:-localhost}"
       ollama_api_server_port: "${ollama_api_server_port:-11434}"
-    # ports:
-    #   - "${api_server_port}:4000"
+      mongo_host: "localhost" # Conecta ao MongoDB via localhost
+      mongo_port: "27017"
     cpus: 4
     restart: "always"
-    network_mode: "host"
+    network_mode: host
+    depends_on:
+      - mongo-db-to-auth-telegram-service
+
+  mongo-db-to-auth-telegram-service:
+    container_name: mongo-db-to-auth-telegram-container
+    image: "mongo:5"
+    user: root
+    restart: always
+    tty: true
+    stdin_open: true
+    env_file:
+      - ../conf/.env
+    environment:
+      MONGO_USERNAME: "root"
+      MONGO_PASSWORD: "root"
+      MONGODB_PORT: "27017"
+    command: mongod --replSet myReplicaSet --bind_ip_all
+    volumes:
+      - ../src/database/data:/data/db
+      - ../src/database/scripts/replicaset.sh:/docker-entrypoint-initdb.d/replicaset.sh
+      - ../src/database/scripts/replicaset.key:/data/keyfile/replicaset.key
+    ports:
+      - 27017:27017
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2g
+    networks:
+      - bot-telegram-chatbot
+
+networks:
+  bot-telegram-chatbot:
+    name: bot-telegram-chatbot
+    driver: bridge
