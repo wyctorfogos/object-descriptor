@@ -26,3 +26,8 @@ No chat do telegram com o bot, digite o comando `/describeImage`
 ![Imagem de teste](./images/image.png)
 
 Obs.: <LLM_NAME> Precisa ser o mesmo que o nome do llm do arquivo .env
+
+Rodar o sistema de chatbot via docker-compose:
+
+Vá até a pasta 'docker' e digite o comando:
+`docker-compose --env-file ../docker/conf/.env up -d --remove-orphans --build`

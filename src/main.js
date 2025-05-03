@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../conf/.env') });// Replace with your bot token from BotFather
+require('dotenv');//.config({ path: path.resolve(__dirname, '../conf/.env') });// Replace with your bot token from BotFather
 const { request_to_llm } = require("./utils/request_to_ollama.js");
 const { request_image_description } = require("./utils/request_to_llm_with_image.js");
 const { downloadImageContent } = require("./utils/dowload_image_content.js");

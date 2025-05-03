@@ -1,45 +1,51 @@
+# File: docker/docker-compose.yml
 services:
   bot-telegram-service:
     build:
       context: ..
       dockerfile: docker/dockerfile
+    # Also inject same file into the container
     env_file:
-      - ../conf/.env
+      - ./conf/.env
     command: ["npm", "start"]
     environment:
-      llm_model_name: "${llm_model_name:-gemma3:4b-it-qat}"
-      api_server: "${api_server:-localhost}"
-      api_server_port: "${api_server_port:-4000}"
-      ollama_api_server_ipaddress: "${ollama_api_server_ipaddress:-localhost}"
-      ollama_api_server_port: "${ollama_api_server_port:-11434}"
-      mongo_host: "localhost" # Conecta ao MongoDB via localhost
-      mongo_port: "27017"
+      llm_model_name=: ${llm_model_name}
+      api_server=: ${api_server}
+      api_server_port: ${api_server_port}
+      ollama_api_server_ipaddress: ${ollama_api_server_ipaddress}
+      ollama_api_server_port: ${ollama_api_server_port}
+      mongo_host: ${MONGO_SERVER_IPADDRESS}
+      mongo_port: ${MONGODB_PORT}
+    ports:
+      - ${api_server_port}:4000
     cpus: 4
-    restart: "always"
+    restart: always
     network_mode: host
     depends_on:
       - mongo-db-to-auth-telegram-service
 
   mongo-db-to-auth-telegram-service:
     container_name: mongo-db-to-auth-telegram-container
-    image: "mongo:5"
+    image: mongo:5
     user: root
     restart: always
     tty: true
     stdin_open: true
     env_file:
-      - ../conf/.env
+      - ./conf/.env
     environment:
-      MONGO_USERNAME: "root"
-      MONGO_PASSWORD: "root"
-      MONGODB_PORT: "27017"
+      MONGO_USERNAME: root
+      MONGO_PASSWORD: root
+      # These will be interpolated from conf/.env
+      MONGO_SERVER_IPADDRESS: ${MONGO_SERVER_IPADDRESS}
+      MONGODB_PORT: ${MONGODB_PORT}
     command: mongod --replSet myReplicaSet --bind_ip_all
     volumes:
       - ../src/database/data:/data/db
       - ../src/database/scripts/replicaset.sh:/docker-entrypoint-initdb.d/replicaset.sh
       - ../src/database/scripts/replicaset.key:/data/keyfile/replicaset.key
     ports:
-      - 27017:27017
+      - ${MONGODB_PORT}:27017
     deploy:
       resources:
         limits:
