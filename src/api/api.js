@@ -40,7 +40,7 @@ app.post('/v1.0/create_conversation', async (req, res) => {
     }
 });
 
-// Rota para criar uma conversa
+// Rota para atualizar uma conversa
 app.put('/v1.0/update_conversation', async (req, res) => {
     const chat_id = req.query.chat_id; // Obtém o chat_id da query string
     const user_history = req.body.data; // Obtém os dados do corpo da requisição
@@ -52,11 +52,21 @@ app.put('/v1.0/update_conversation', async (req, res) => {
     try {
         await client.connect();
         const db = client.db(DB_NAME);
-        await db.collection(COLLECTION_NAME).updateOne({ _id: chat_id, user_conversation: user_history });
-        res.status(201).json({ message: "Conversation created successfully" });
+
+        // Atualiza o documento correspondente ao chat_id
+        const result = await db.collection(COLLECTION_NAME).updateOne(
+            { _id: chat_id }, // Filtro para localizar o documento
+            { $set: { user_conversation: user_history } } // Atualizações
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: "Conversation not found" });
+        }
+
+        res.status(200).json({ message: "Conversation updated successfully" });
     } catch (error) {
-        console.error(`Error creating conversation: ${error}`);
-        res.status(500).json({ error: "Failed to create conversation" });
+        console.error(`Error updating conversation: ${error}`);
+        res.status(500).json({ error: "Failed to update conversation" });
     }
 });
 
