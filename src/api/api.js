@@ -1,8 +1,8 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const path = require('path');
+// require('dotenv').config(); // or remove entirely, Docker injects env vars
 require('dotenv').config({ path: path.resolve(__dirname, '../../docker/conf/.env') });
-
 const MONGO_SERVER_IPADDRESS = process.env.MONGO_SERVER_IPADDRESS;
 const MONGODB_PORT = process.env.MONGODB_PORT;
 const MONGO_USERNAME = process.env.MONGO_USERNAME;
@@ -15,7 +15,7 @@ const app = express();
 app.use(express.json());
 
 // Cliente MongoDB
-const client = new MongoClient(`mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_SERVER_IPADDRESS}:${MONGODB_PORT}?directConnection=true`);
+const client = new MongoClient(`mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_SERVER_IPADDRESS}:${MONGODB_PORT}/`);
 
 // Porta usada para a API
 const port = 3000;
@@ -119,5 +119,6 @@ app.delete('/v1.0/delete_last_conversation', async (req, res) => {
 });
 
 // Inicia o servidor
-app.listen(port, () => console.log(`API listening on port ${port}!`));
-
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server listening on port ${port}`);
+});
