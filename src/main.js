@@ -123,6 +123,20 @@ bot.on('message', async (msg) => {
     if (text == "/stop") {
         try {
             // Apaga a conversa do banco de dados
+            conversationHistory[chatId] = [];
+            activeConversations[chatId] = false;
+            bot.sendMessage(chatId, messages[userLanguages[chatId] || "en"].stopConversation);
+        } catch (error) {
+            console.error("Erro ao apagar a conversa:", error.message);
+            bot.sendMessage(chatId, "Ocorreu um erro ao encerrar a conversa. Tente novamente.");
+        }
+    }
+
+
+    // Comando para apagar o histórico de conversa
+    if (text == "/delete") {
+        try {
+            // Apaga a conversa do banco de dados
             await axios.delete(`http://${API_BASE_URL}:${API_BASE_URL_PORT}/v1.0/delete_last_conversation?chat_id=${chatId}`);
             conversationHistory[chatId] = [];
             activeConversations[chatId] = false;
@@ -176,12 +190,7 @@ bot.on('message', async (msg) => {
             }
         });
     }
-
-    if (text == "/reset") {
-        conversationHistory[chatId] = [];
-        bot.sendMessage(chatId, messages[userLanguages[chatId] || "en"].resetHistory);
-    }
-
+    
     if (text == "/getchatid") {
         bot.sendMessage(chatId, `Bot: Your chatid is ${chatId}`);
     }
