@@ -1,11 +1,20 @@
 // Utility function to split a long message into smaller parts
-function splitMessage(message, maxLength = 4000) {
+function splitMessage(message, maxLength) {
     const parts = [];
-    while (message.length > maxLength) {
-        parts.push(message.slice(0, maxLength));
-        message = message.slice(maxLength);
+    let currentPart = '';
+
+    for (const word of message.split(' ')) {
+        if ((currentPart + word).length > maxLength) {
+            parts.push(currentPart.trim());
+            currentPart = '';
+        }
+        currentPart += `${word} `;
     }
-    parts.push(message);
+
+    if (currentPart.trim().length > 0) {
+        parts.push(currentPart.trim());
+    }
+
     return parts;
 }
 

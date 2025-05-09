@@ -62,11 +62,13 @@ bot.on('message', async (msg) => {
             });
 
             // Divide a resposta em partes menores
-            const responseParts = splitMessage(llm_response, 4000);
+            const responseParts = splitMessage(llm_response, 1000);
 
-            // Envia cada parte da resposta
+            // Simula o envio de mensagens em streaming
             for (const part of responseParts) {
+                console.log(`Sending chunk: ${part}`);
                 await bot.sendMessage(chatId, `Bot: ${part}`);
+                await new Promise(resolve => setTimeout(resolve, 50)); // Aguarda 500ms entre as mensagens
             }
 
             console.log("Registro da conversa atualizado!");
@@ -78,8 +80,13 @@ bot.on('message', async (msg) => {
             await bot.deleteMessage(chatId, loadingMessageGetReport.message_id);
         }
     }
+});
 
-    // Comando para iniciar o chatbot
+// Comando para iniciar o chatbot
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text;
+
     if (text == "/chatbot") {
         try {
             // Verifica se há uma conversa existente

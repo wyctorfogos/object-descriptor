@@ -1,11 +1,11 @@
 const axios = require("axios");
 
-async function request_to_llm(model_name, llm_server_host, llm_server_port, conversationHistory) {
+async function request_to_llm(model_name, llm_server_host, llm_server_port, conversationHistory, stream_mode=false) {
     try {
         const response = await axios.post(`http://${llm_server_host}:${llm_server_port}/api/generate/`, {
             prompt: conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join("\n"),
             model: model_name,
-            stream: false
+            stream: stream_mode
         });
 
         if (response.status !== 200) {
