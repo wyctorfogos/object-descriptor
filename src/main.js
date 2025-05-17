@@ -222,41 +222,48 @@ bot.on('message', async (msg) => {
 
         bot.sendMessage(chatId, messages[userLanguages[chatId] || "en"].selectLanguage, languageOptions);
     }
-});
 
-bot.on('document', async (msg) => {
-    const chatId = msg.chat.id;
-    const document = msg.document;
+    if (text == "/pdf_analyser") {
 
-    if (document.mime_type !== 'application/pdf') {
-        bot.sendMessage(chatId, "❌ Apenas arquivos PDF são suportados.");
-        return;
-    }
+        const bot_feedback = await bot.sendMessage(chatId, 'Upload the document to describe it', {
+            reply_markup: {
+                force_reply: true,
+            }
+        });
 
-    // Baixar o arquivo
-    const file = await bot.getFile(document.file_id);
-    const fileUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+        bot.onReplyToMessage(chatId, bot_feedback.message_id, async (responseToPdfDescription) => {
+            if (responseToPdfDescription.document) {
+                // Baixar o arquivo
+                const file = await bot.getFile(responseToPdfDescription.document.file_id);
+                const fileUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
 
-    try {
-        const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
-        const dataBuffer = response.data;
+                try {
+                    const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+                    const dataBuffer = response.data;
 
-        // Extrair texto do PDF
-        const pdfData = await pdfParse(dataBuffer);
-        const pdfText = pdfData.text;
+                    // Extrair texto do PDF
+                    const pdfData = await pdfParse(dataBuffer);
+                    const pdfText = pdfData.text;
 
-        // Salvar no histórico do usuário (opcional)
-        conversationHistory[chatId] = [
-            { role: "system", content: "The user send a pdf document file to be resumed. Answer the user based on the file content." },
-            { role: "user", content: `PDF content:\n${pdfText.slice(0, 8000)}` } // limite seguro
-        ];
+                    // Salvar no histórico do usuário (opcional)
+                    conversationHistory[chatId] = [
+                        { role: "system", content: "The user send a pdf document file to be resumed. Answer the user based on the file content." },
+                        { role: "user", content: `PDF content:\n${pdfText.slice(0, 8000)}` } // limite seguro
+                    ];
 
-        bot.sendMessage(chatId, "✅ PDF file has been loaded. Now, you can make your requests.");
-        activeConversations[chatId] = true;
-    } catch (error) {
-        console.error("Erro on the file preprocessing:", error.message);
-        bot.sendMessage(chatId, "⚠️ There was a error to load the pdf file. Try again.");
-    }
+                    bot.sendMessage(chatId, "✅ PDF file has been loaded. Now, you can make your requests.");
+                    activeConversations[chatId] = true;
+                } catch (error) {
+                    console.error("Erro on the file preprocessing:", error.message);
+                    bot.sendMessage(chatId, "⚠️ There was a error to load the pdf file. Try again.");
+                }
+            }
+     
+            if (responseToPdfDescription.document.mime_type !== 'application/pdf') {
+                bot.sendMessage(chatId, "❌ Apenas arquivos PDF são suportados.");
+                return;
+            }
+        })};
 });
 
 bot.on("callback_query", (callbackQuery) => {

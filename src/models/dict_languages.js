@@ -12,6 +12,7 @@ const messages = {
             /stop: Stop the conversation with the AI;
             /reset: Clear the conversation history;
             /getchatid: Get your chat ID;
+            /pdf_analyser: Make an analyse of a PDF file;
             /languages: Choose another language`,
         selectLanguage: "Select a language:",
     },
@@ -28,6 +29,7 @@ const messages = {
             /stop : Arrêtez la conversation avec l'IA ;
             /reset : Effacez l'historique de la conversation ;
             /getchatid : Obtenez votre ID de chat;
+            /pdf_analyser: Faire un analise du archive en format PDF;
             /languages : Choisissez une autre langue`,
         selectLanguage: "Sélectionnez une langue :",
     },
@@ -44,6 +46,7 @@ const messages = {
             /stop: Detén la conversación con la IA;
             /reset: Borra el historial de conversación;
             /getchatid: Obtén tu ID de chat;
+            /pdf_analyser: Analisa um arquivo em PDF;
             /idiomas: Elige otro idioma`,
         selectLanguage: "Selecciona un idioma:",
     },
@@ -60,6 +63,7 @@ const messages = {
         /stop: Interrompa a conversa com a IA;
         /reset: Limpe o histórico da conversa;
         /getchatid: Obtenha seu ID de bate-papo;
+        /pdf_analyser: Analisa um arquivo em PDF;
         /languages: Escolha outro idioma`,
         selectLanguage: "Selecione um idioma:",
         }
