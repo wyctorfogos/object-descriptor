@@ -3,11 +3,13 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../conf/.env') });
 const { request_to_llm } = require("./utils/request_to_ollama.js");
 const { request_image_description } = require("./utils/request_to_llm_with_image.js");
-const { downloadImageContent } = require("./utils/dowload_image_content.js");
+const { downloadImageContent } = require("./utils/download_image_content.js");
 const { resizeImage} = require("./utils/resize_image.js");
 const { splitMessage } = require("./utils/split_message.js");
 const { messages } = require('./models/dict_languages.js')
 const axios = require('axios');
+const fs = require('fs');
+const pdfParse = require('pdf-parse');
 
 // Carregar os dados de configuração 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -219,6 +221,41 @@ bot.on('message', async (msg) => {
         };
 
         bot.sendMessage(chatId, messages[userLanguages[chatId] || "en"].selectLanguage, languageOptions);
+    }
+});
+
+bot.on('document', async (msg) => {
+    const chatId = msg.chat.id;
+    const document = msg.document;
+
+    if (document.mime_type !== 'application/pdf') {
+        bot.sendMessage(chatId, "❌ Apenas arquivos PDF são suportados.");
+        return;
+    }
+
+    // Baixar o arquivo
+    const file = await bot.getFile(document.file_id);
+    const fileUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+
+    try {
+        const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+        const dataBuffer = response.data;
+
+        // Extrair texto do PDF
+        const pdfData = await pdfParse(dataBuffer);
+        const pdfText = pdfData.text;
+
+        // Salvar no histórico do usuário (opcional)
+        conversationHistory[chatId] = [
+            { role: "system", content: "The user send a pdf document file to be resumed. Answer the user based on the file content." },
+            { role: "user", content: `PDF content:\n${pdfText.slice(0, 8000)}` } // limite seguro
+        ];
+
+        bot.sendMessage(chatId, "✅ PDF file has been loaded. Now, you can make your requests.");
+        activeConversations[chatId] = true;
+    } catch (error) {
+        console.error("Erro on the file preprocessing:", error.message);
+        bot.sendMessage(chatId, "⚠️ There was a error to load the pdf file. Try again.");
     }
 });
 
