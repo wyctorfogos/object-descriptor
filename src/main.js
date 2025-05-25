@@ -3,6 +3,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../conf/.env') });
 const { request_to_llm } = require("./utils/request_to_ollama.js");
 const { request_image_description } = require("./utils/request_to_llm_with_image.js");
+const {request_to_read_pdf_with_docling } = require("./utils/request_to_docling.js");
 const { downloadImageContent } = require("./utils/download_image_content.js");
 const { resizeImage} = require("./utils/resize_image.js");
 const { splitMessage } = require("./utils/split_message.js");
@@ -10,6 +11,7 @@ const { messages } = require('./models/dict_languages.js')
 const axios = require('axios');
 const fs = require('fs');
 const pdfParse = require('pdf-parse');
+const { data } = require('@tensorflow/tfjs');
 
 // Carregar os dados de configuração 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -18,6 +20,8 @@ const ollama_api_server_ipaddress = process.env.ollama_api_server_ipaddress;
 const ollama_api_server_port = process.env.ollama_api_server_port;
 const API_BASE_URL = process.env.MONGO_SERVER_IPADDRESS;
 const API_BASE_URL_PORT = process.env.API_BASE_URL_PORT;
+const API_DOCLING_IPADDRES = process.env.API_DOCLING_IPADDRES;
+const API_DOCLING_PORT = process.env.API_DOCLING_PORT;
 
 // Create a bot instance
 const bot = new TelegramBot(token, { polling: true });
@@ -242,13 +246,15 @@ bot.on('message', async (msg) => {
                     const dataBuffer = response.data;
 
                     // Extrair texto do PDF
-                    const pdfData = await pdfParse(dataBuffer);
-                    const pdfText = pdfData.text;
+                    // const pdfData = await pdfParse(dataBuffer);
+                    // const pdfText = pdfData.text;
+                    // Requisita ao docling a extração do conteúdo do texto
+                    const pdfContentExtracted = await request_to_read_pdf_with_docling(pdfBuffer=dataBuffer, API_DOCLING_IPADDRES=API_DOCLING_IPADDRES, API_DOCLING_PORT=API_DOCLING_PORT);
 
                     // Salvar no histórico do usuário (opcional)
                     conversationHistory[chatId] = [
                         { role: "system", content: "The user send a pdf document file to be resumed. Answer the user based on the file content." },
-                        { role: "user", content: `PDF content:\n${pdfText.slice(0, 8000)}` } // limite seguro
+                        { role: "user", content: `PDF content:\n${pdfContentExtracted }` } 
                     ];
 
                     bot.sendMessage(chatId, "✅ PDF file has been loaded. Now, you can make your requests.");

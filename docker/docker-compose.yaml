@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   bot-telegram-service:
     build:
@@ -85,6 +83,27 @@ services:
     network_mode: "host"
     #networks:
 #      - bot-telegram-chatbot
+  docling-inference:
+    image: ghcr.io/aidotse/docling-inference:latest
+    environment:
+      - NUM_WORKERS_DOCLING=${NUM_WORKERS_DOCLING}
+      - API_DOCLING_IPADDRES=${API_DOCLING_IPADDRES}
+      - API_DOCLING_PORT=${API_DOCLING_PORT}
+    restart: always
+    ports:
+      - "${API_DOCLING_PORT}:8080"      
+    volumes:
+      - ../docling/cache/hf_cache:/root/.cache/huggingface:rw
+      - ../docling/cache/ocr_cache:/root/.EasyOCR:rw
+    # ❌ Remova ou comente a seção abaixo
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
 
 networks:
   bot-telegram-chatbot:

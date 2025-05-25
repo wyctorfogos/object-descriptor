@@ -3,3 +3,5 @@ node_modules
 src/database/data/
 docker/conf/.env
 e2e.log
+docling/cache
+data
