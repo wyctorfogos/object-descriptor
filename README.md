@@ -31,3 +31,5 @@ Rodar o sistema de chatbot via docker-compose:
 
 Vá até a pasta 'docker' e digite o comando:
 `docker-compose --env-file ../docker/conf/.env up -d --remove-orphans --build`
+
+Para leitura de arquivos PDF o comando '/pdf_analyser', o que utiliza um serviço do DOCLING.
